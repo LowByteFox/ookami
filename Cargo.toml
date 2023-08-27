@@ -1,0 +1,11 @@
+[package]
+name = "ookami"
+description = "A shell made in rust"
+authors = ["Ján Gajdoš <firethefox77@gmail.com>"]
+license = "ISC"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
