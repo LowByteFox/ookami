@@ -37,7 +37,7 @@ fn process_prompt(prompt: &String) {
         }
         let length = splited.len();
         let proc = splited.get_mut(length - 1).unwrap();
-        if item != ">" && item != "<" && item != "|" {
+        if item != ">" && item != "<" && item != "|" && item != "2>" {
             proc.args.push(item.to_owned());
         } else {
             if item == ">" {
@@ -52,7 +52,7 @@ fn process_prompt(prompt: &String) {
                 } else {
                     ""
                 }
-            else if item == "2>" {
+            } else if item == "2>" {
                 proc.stderr = if parsed_iter.peek().is_some() {
                     parsed_iter.next().unwrap()
                 } else {
