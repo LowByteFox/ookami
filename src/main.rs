@@ -1,6 +1,8 @@
 use std::env;
 use std::path::PathBuf;
+use std::process::Child;
 use std::process::Command;
+use std::process::Stdio;
 use std::process::exit;
 
 mod utils;
@@ -18,15 +20,56 @@ fn get_home_directory() -> Option<String> {
 }
 
 fn process_prompt(prompt: &String) {
-    let mut args = utils::split_string(prompt);
-    let command = args.remove(0);
+    let parsed = utils::split_string(prompt);
+    let mut splited: Vec<Vec<String>> = Vec::new();
+    let mut temp = Vec::new();
 
-    let mut child = Command::new(command)
-        .args(args)
-        .spawn()
-        .unwrap();
+    for item in parsed {
+        if item == "|" {
+            splited.push(temp.clone());
+            temp.clear();
+        } else {
+            temp.push(item);
+        }
+    }
+    splited.push(temp.clone());
 
-    let _ = child.wait();
+    let mut iter = splited.iter_mut().peekable();
+    let mut previous = None;
+
+    while let Some(args) = iter.next() {
+        let command = args.remove(0);
+
+        let stdin = previous.map_or(Stdio::inherit(), |output: Child| {
+            Stdio::from(output.stdout.unwrap())
+        });
+
+        let stdout = if iter.peek().is_some() {
+            Stdio::piped()
+        } else {
+            Stdio::inherit()
+        };
+
+        let output = Command::new(command)
+            .args(args)
+            .stdin(stdin)
+            .stdout(stdout)
+            .spawn();
+
+        match output {
+            Ok(o) => {
+                previous = Some(o);
+            }
+            Err(e) => {
+                previous = None;
+                eprintln!("{}", e);
+            }
+        }
+    }
+
+    if let Some(mut last) = previous {
+        last.wait().unwrap();
+    }
 }
 
 fn main() {
