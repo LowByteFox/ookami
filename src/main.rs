@@ -6,6 +6,10 @@ use std::process::Stdio;
 use std::process::exit;
 
 mod utils;
+mod process;
+mod startup;
+
+use process::Process;
 
 use rustyline::Editor;
 use rustyline::history;
@@ -21,55 +25,47 @@ fn get_home_directory() -> Option<String> {
 
 fn process_prompt(prompt: &String) {
     let parsed = utils::split_string(prompt);
-    let mut splited: Vec<Vec<String>> = Vec::new();
-    let mut temp = Vec::new();
+    let mut parsed_iter = parsed.iter().peekable();
+    let mut splited: Vec<Process> = Vec::new();
+    let mut re_parse = false;
 
-    for item in parsed {
-        if item == "|" {
-            splited.push(temp.clone());
-            temp.clear();
-        } else {
-            temp.push(item);
+    while let Some(item) = parsed_iter.next() {
+        if !re_parse {
+            splited.push(Process::init(item.to_owned()));
+            re_parse = true;
+            continue;
         }
-    }
-    splited.push(temp.clone());
-
-    let mut iter = splited.iter_mut().peekable();
-    let mut previous = None;
-
-    while let Some(args) = iter.next() {
-        let command = args.remove(0);
-
-        let stdin = previous.map_or(Stdio::inherit(), |output: Child| {
-            Stdio::from(output.stdout.unwrap())
-        });
-
-        let stdout = if iter.peek().is_some() {
-            Stdio::piped()
+        let length = splited.len();
+        let proc = splited.get_mut(length - 1).unwrap();
+        if item != ">" && item != "<" && item != "|" {
+            proc.args.push(item.to_owned());
         } else {
-            Stdio::inherit()
-        };
-
-        let output = Command::new(command)
-            .args(args)
-            .stdin(stdin)
-            .stdout(stdout)
-            .spawn();
-
-        match output {
-            Ok(o) => {
-                previous = Some(o);
-            }
-            Err(e) => {
-                previous = None;
-                eprintln!("{}", e);
+            if item == ">" {
+                proc.stdout = if parsed_iter.peek().is_some() {
+                    parsed_iter.next().unwrap()
+                } else {
+                    ""
+                }
+            } else if item == "<" {
+                proc.stdin = if parsed_iter.peek().is_some() {
+                    parsed_iter.next().unwrap()
+                } else {
+                    ""
+                }
+            else if item == "2>" {
+                proc.stderr = if parsed_iter.peek().is_some() {
+                    parsed_iter.next().unwrap()
+                } else {
+                    ""
+                }
+            } else if item == "|" {
+                re_parse = false;
+                proc.pipe = true;
             }
         }
     }
 
-    if let Some(mut last) = previous {
-        last.wait().unwrap();
-    }
+    println!("{:?}", splited);
 }
 
 fn main() {
@@ -94,6 +90,8 @@ fn main() {
     if rl.load_history(home_dir).is_err() {
         println!("No previous history.");
     }
+
+    startup::draw();
 
     loop {
         let line = readline(&mut rl, "> ");
