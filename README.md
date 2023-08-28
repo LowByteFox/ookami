@@ -1,2 +1,2 @@
 # ookami
-A shell made in rust
+A shell made in go

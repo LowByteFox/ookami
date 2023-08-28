@@ -68,6 +68,8 @@ func handleProcess(scan Scanner) {
         proc.start(previous)
         previous = proc
     }
+
+    previous.end()
 }
 
 func main() {

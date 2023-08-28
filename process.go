@@ -13,6 +13,8 @@ type Process struct {
     stdout string
     stdin string
     stderr string
+    pipe_pipe_reader *io.PipeReader
+    pipe_pipe_writer *io.PipeWriter
     stdout_pipe *os.File
     stdin_pipe *os.File
     stderr_pipe *os.File
@@ -35,18 +37,23 @@ func (p *Process) prepare() {
         panic("Cannot pipe stdout to file and also to another process")
     }
 
-    if len(p.stdout) > 0 {
-        if _, err := os.Stat(p.stdout); err == nil {
-            file, _ := os.Open(p.stdout)
-            p.stdout_pipe = file
-        } else {
-            file, err := os.Create(p.stdout)
-            if err != nil {
-                panic(err)
-            }
+    if p.pipe {
+        p.pipe_pipe_reader, p.pipe_pipe_writer = io.Pipe()
+    }
 
-            p.stdout_pipe = file
-        }
+    if len(p.stdout) > 0 {
+        file, _ := os.OpenFile(p.stdout, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+        p.stdout_pipe = file
+    }
+
+    if len(p.stdin) > 0 {
+        file, _ := os.OpenFile(p.stdin, os.O_RDONLY, 0644)
+        p.stdin_pipe = file
+    }
+
+    if len(p.stderr) > 0 {
+        file, _ := os.OpenFile(p.stderr, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+        p.stderr_pipe = file
     }
 }
 
@@ -55,7 +62,7 @@ func (p *Process) start(previous *Process) {
 
     if previous != nil {
         if previous.pipe {
-            p.proc.Stdin = *previous.run_stdout_pipe
+            p.proc.Stdin = previous.pipe_pipe_reader
         }
     }
 
@@ -63,13 +70,22 @@ func (p *Process) start(previous *Process) {
         p.proc.Stdout = p.stdout_pipe
     }
 
-    if p.pipe {
-        pipe, err := p.proc.StdoutPipe()
+    if p.stderr_pipe != nil {
+        p.proc.Stderr = p.stderr_pipe
+    }
+
+    if p.stdin_pipe != nil {
+        stdin, err := p.proc.StdinPipe()
         if err != nil {
             panic(err)
         }
 
-        p.run_stdout_pipe = &pipe
+        io.Copy(stdin, p.stdin_pipe)
+        stdin.Close()
+    }
+
+    if p.pipe {
+        p.proc.Stdout = p.pipe_pipe_writer
     }
 
     if p.proc.Stdout == nil {
@@ -82,5 +98,30 @@ func (p *Process) start(previous *Process) {
         p.proc.Stderr = os.Stderr
     }
 
-    p.proc.Run()
+    p.proc.Start()
+    if previous != nil {
+        if previous.pipe {
+            previous.end()
+            previous.pipe_pipe_writer.Close()
+        }
+    }
+}
+
+func (p *Process) end() {
+    err := p.proc.Wait()
+    if err != nil {
+        panic(err)
+    }
+
+    if p.stdout_pipe != nil {
+        p.stdout_pipe.Close()
+    }
+
+    if p.stderr_pipe != nil {
+        p.stderr_pipe.Close()
+    }
+
+    if p.stdin_pipe != nil {
+        p.stdin_pipe.Close()
+    }
 }
