@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -8,8 +9,37 @@ import (
 	"github.com/yuin/gopher-lua"
 )
 
+func PrintLn(L *lua.LState) int {
+    text := L.Get(1)
+    println(text.String())
+    return 0
+}
+
+func colorify(L *lua.LState) int {
+    isBg := L.ToBool(1)
+    r := L.ToNumber(2)
+    g := L.ToNumber(3)
+    b := L.ToNumber(4)
+
+    textCode := 38
+    if isBg {
+        textCode = 48
+    }
+
+    colorCode := fmt.Sprintf("%d;2;%d;%d;%d", textCode, r, g, b)
+    escapeCode := fmt.Sprintf("\x1b[%sm", colorCode)
+
+    print(escapeCode)
+    return 0
+}
+
+func resetColor(L *lua.LState) int {
+    print("\x1b[0m")
+    return 0
+}
+
 func startScript(path string) {
-    L := lua.NewState(lua.Options{SkipOpenLibs: true})
+    L := lua.NewState()
     defer L.Close()
 
     for _, pair := range []struct {
@@ -39,6 +69,8 @@ func startScript(path string) {
         }
     }
 
+    L.SetGlobal("colorify", L.NewFunction(colorify))
+    L.SetGlobal("resetColor", L.NewFunction(resetColor))
     L.SetGlobal("env", table)
     if err := L.DoFile(path); err != nil {
         panic(err)
