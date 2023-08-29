@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"os/user"
 	"path"
+	"strings"
 	"syscall"
 
 	"github.com/chzyer/readline"
@@ -46,7 +47,16 @@ func handleProcess(scan Scanner) {
         proc := processes[len(processes)-1]
 
         if item != ">" && item != "<" && item != "|" && item != "2>" {
-            proc.args = append(proc.args, item)
+            finalItem := ""
+            maybeEnv := strings.Split(item, "$")
+            for _, i := range maybeEnv {
+                if val, exists := os.LookupEnv(i); exists {
+                    finalItem += val
+                } else {
+                    finalItem += i
+                }
+            }
+            proc.args = append(proc.args, finalItem)
         } else {
             hasNext := i + 1 < splitLen
             if item == ">" && hasNext {
