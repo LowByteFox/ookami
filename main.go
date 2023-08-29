@@ -13,11 +13,11 @@ import (
 	"github.com/willdonnelly/passwd"
 )
 
-func listFiles(path string) [][]rune {
-    names := make([][]rune, 0)
+func listFiles(path string) []string {
+    names := make([]string, 0)
     files, _ := ioutil.ReadDir(path)
     for _, f := range files {
-        names = append(names, []rune(f.Name()))
+        names = append(names, f.Name())
     }
     return names
 }
@@ -114,7 +114,32 @@ type Completer struct  {
 func (self* Completer) Do(line []rune, pos int) (newLine [][]rune, lnegth int) {
     files := listFiles("./")
 
-    return files, pos
+    test := readline.NewPrefixCompleter()
+    scanner := ScannerNew(string(line))
+    var current *readline.PrefixCompleter = test
+
+    for {
+        var randomChild []readline.PrefixCompleterInterface
+        tmp := scanner.next()
+        if len(tmp) == 0 {
+            break
+        }
+        temp := readline.PcItem(tmp)
+
+        randomChild = append(randomChild, temp)
+        (*current).SetChildren(randomChild)
+
+        current = temp
+    }
+
+    var children []readline.PrefixCompleterInterface
+
+    for _, i := range files {
+        children = append(children, readline.PcItem(i))
+    }
+    (*current).SetChildren(children)
+
+    return test.Do(line, pos)
 }
 
 func main() {
