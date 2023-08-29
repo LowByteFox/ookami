@@ -99,6 +99,7 @@ func handleProcess(scan Scanner) {
 
 func main() {
     os.Setenv("SHELL", "ookami")
+    os.Setenv("?", "0")
 
     args := os.Args[1:]
     if len(args) > 0 {

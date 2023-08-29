@@ -123,11 +123,12 @@ func (p *Process) end() {
     if err != nil {
         if exitErr, ok := err.(*exec.ExitError); ok {
             exitStatus := exitErr.Sys().(syscall.WaitStatus).ExitStatus()
-            if exitStatus == -1 {
-            } else {
-                panic(err)
-            }
+            os.Setenv("?", fmt.Sprintf("%d", exitStatus))
+        } else {
+            panic(err)
         }
+    } else {
+        os.Setenv("?", "0")
     }
 
     if p.stdout_pipe != nil {
