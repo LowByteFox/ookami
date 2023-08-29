@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -58,7 +60,7 @@ func (p *Process) prepare() {
     }
 }
 
-func (p *Process) start(previous *Process) {
+func (p *Process) start(previous *Process) bool {
     p.proc = exec.Command(p.app, p.args...)
 
     if previous != nil {
@@ -99,13 +101,21 @@ func (p *Process) start(previous *Process) {
         p.proc.Stderr = os.Stderr
     }
 
-    p.proc.Start()
+    err := p.proc.Start()
+    if err != nil {
+        if errors.Is(err, exec.ErrNotFound) {
+            fmt.Printf("ookami: unknown command %s\n", p.app)
+            return false
+        }
+    }
     if previous != nil {
         if previous.pipe {
             previous.end()
             previous.pipe_pipe_writer.Close()
         }
     }
+
+    return true
 }
 
 func (p *Process) end() {

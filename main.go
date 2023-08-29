@@ -85,11 +85,16 @@ func handleProcess(scan Scanner) {
 
     for i := 0; i < splitLen; i++ {
         proc := processes[i]
-        proc.start(previous)
+        ret := proc.start(previous)
+        if !ret { 
+            return
+        }
         previous = proc
     }
 
-    previous.end()
+    if previous != nil {
+        previous.end()
+    }
 }
 
 func main() {
