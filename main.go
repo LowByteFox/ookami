@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"os/user"
 	"path"
 
@@ -73,6 +74,14 @@ func handleProcess(scan Scanner) {
 }
 
 func main() {
+    os.Setenv("SHELL", "ookami")
+
+    args := os.Args[1:]
+    if len(args) > 0 {
+        startScript(args[0])
+        os.Exit(0)
+    }
+
     greet()
 
     user, _ := user.Current()
