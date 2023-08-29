@@ -1,10 +1,11 @@
 package main
 
 import (
-    "os"
-    "strings"
+	"os"
+	"strings"
 
-    "github.com/yuin/gopher-lua"
+	"github.com/LowByteFox/ookami/lua/modules/fs"
+	"github.com/yuin/gopher-lua"
 )
 
 func startScript(path string) {
@@ -27,6 +28,8 @@ func startScript(path string) {
             panic(err)
         }
     }
+
+    L.PreloadModule("ookami:fs", fs.Loader)
 
     table := L.NewTable()
 
