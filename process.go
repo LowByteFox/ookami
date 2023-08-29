@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
 )
 
 type Process struct {
@@ -110,7 +111,13 @@ func (p *Process) start(previous *Process) {
 func (p *Process) end() {
     err := p.proc.Wait()
     if err != nil {
-        panic(err)
+        if exitErr, ok := err.(*exec.ExitError); ok {
+            exitStatus := exitErr.Sys().(syscall.WaitStatus).ExitStatus()
+            if exitStatus == -1 {
+            } else {
+                panic(err)
+            }
+        }
     }
 
     if p.stdout_pipe != nil {
@@ -123,5 +130,5 @@ func (p *Process) end() {
 
     if p.stdin_pipe != nil {
         p.stdin_pipe.Close()
-    }
+    } 
 }

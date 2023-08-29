@@ -2,8 +2,10 @@ package main
 
 import (
 	"os"
+	"os/signal"
 	"os/user"
 	"path"
+	"syscall"
 
 	"github.com/chzyer/readline"
 	"github.com/willdonnelly/passwd"
@@ -91,7 +93,6 @@ func main() {
     l, err := readline.NewEx(&readline.Config{
         Prompt: "> ",
         HistoryFile: home_dir,
-        EOFPrompt: "exit",
 
         HistorySearchFold: true,
     })
@@ -101,10 +102,19 @@ func main() {
     }
 
     defer l.Close()
-    l.CaptureExitSignal()
+
+    interrupt := make(chan os.Signal, 1)
+    signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+
+    go func() {
+        <-interrupt
+    }()
 
     for {
         line, err := l.Readline()
+        if err == readline.ErrInterrupt {
+            continue
+        }
         if err != nil {
             break
         }
