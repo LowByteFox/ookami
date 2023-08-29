@@ -11,8 +11,9 @@ import (
 //go:embed assets/*
 var art embed.FS
 
+var images []string
+
 func greet() {
-    var images []string
 
     fs.WalkDir(art, "assets", func(path string, d fs.DirEntry, err error) error {
         if d.IsDir() {
@@ -35,6 +36,11 @@ func greet() {
         return nil
     })
 
+    index := rand.Intn(len(images))
+    fmt.Print(images[index])
+}
+
+func banner() {
     index := rand.Intn(len(images))
     fmt.Print(images[index])
 }

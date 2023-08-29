@@ -27,6 +27,13 @@ func handleProcess(scan Scanner) {
 
     splitLen := len(split)
 
+    if splitLen == 2 {
+        if split[0] == "cd" {
+            os.Chdir(split[1])
+            return
+        }
+    }
+
     for i := 0; i < splitLen; i++ {
         item := split[i]
 
@@ -117,6 +124,10 @@ func main() {
         }
         if err != nil {
             break
+        }
+        if line == "banner" {
+            banner()
+            continue
         }
         if line == "exit" {
             break
