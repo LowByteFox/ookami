@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"os/user"
@@ -11,6 +12,15 @@ import (
 	"github.com/chzyer/readline"
 	"github.com/willdonnelly/passwd"
 )
+
+func listFiles(path string) [][]rune {
+    names := make([][]rune, 0)
+    files, _ := ioutil.ReadDir(path)
+    for _, f := range files {
+        names = append(names, []rune(f.Name()))
+    }
+    return names
+}
 
 func handleProcess(scan Scanner) {
     var split []string
@@ -97,6 +107,16 @@ func handleProcess(scan Scanner) {
     }
 }
 
+type Completer struct  {
+
+}
+
+func (self* Completer) Do(line []rune, pos int) (newLine [][]rune, lnegth int) {
+    files := listFiles("./")
+
+    return files, pos
+}
+
 func main() {
     os.Setenv("SHELL", "ookami")
     os.Setenv("?", "0")
@@ -113,9 +133,12 @@ func main() {
     entries, _ := passwd.Parse()
     home_dir := path.Join(entries[user.Username].Home, ".ookami_history")
 
+    var completer readline.AutoCompleter = &Completer{}
+
     l, err := readline.NewEx(&readline.Config{
         Prompt: "> ",
         HistoryFile: home_dir,
+        AutoComplete: completer,
 
         HistorySearchFold: true,
     })
